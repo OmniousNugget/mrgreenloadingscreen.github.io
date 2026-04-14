@@ -1,27 +1,183 @@
-<html>
-	<head>
-	<title>Mr Green Zombie Survival</title>
-		<style>
-			#bg {       
-			background-size: 100%;
-			background-origin: content;
-			background-repeat: no-repeat;
-			}
-		</style>
-		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-		<script type="text/javascript">
-		var images = ['zs_load1.png','zs_load2.png','zs_load3.png','zs_load4.png', 'zs_load5.png', 'zs_load6.png', 'zs_load7.png']; //Normal loading screens
-		var nbImg = 7;
-		//var images = ['loading_halloween2022.png']
-		//var nbImg = 1
-		var randomImage = Math.floor(Math.random() * (nbImg + 1));
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mr Green Zombie Survival</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="loading-overlay.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>
+    var images = [
+      './images/zs1.png',
+      './images/zs2.png',
+      './images/zs3.png',
+      './images/zs4.png',
+      './images/zs5.png',
+      './images/zs6.png',
+      './images/zs7.png'
+    ];
+    var tips = [
+      'In this version of ZS, weapons are earned by killing zombies. You begin with a simple pistol & melee weapon.',
+      'You can type !rtd in the chat to roll the dice and get a good (or bad!) outcome.',
+      'Your first kill grants you a syringe for healing. It requires 3 charges to be used. You get +1 charge during Ammo Regen.',
+      'In early game, you get a mini cade kit to help defend a position.',
+      'Open the Outpost menu (F1) to check your stats,achievements, mission, equipment and more!',
+      'You can earn greencoins by killing players and completing daily missions.',
+      'Your weapons and zombie classes have perks that can be improved during the game (with kills, assists & overall progression). Press the C key for more info!',
+      'Wanna reach out to the Mr Green crew? Check out our discord and forums!',
+      'There are two ways to survive : barricading, or running & gunning'
+    ];
+    var displayDuration = 16000;
+    var fadeDuration = 2200;
+    var recentHistory = [];
+    var shuffledPool = [];
+    var currentImage = null;
+    var currentTipIndex = -1;
 
-		 $(document).ready(function() {
-		  $("#bg").css("background-image", "url('" + images[randomImage] + "')");
-		  //$("#bg").css("background-image", "url('" + prefix + images[0] + "')");
-		})
-		</script>   
-	</head>
-<body id="bg">
+    function shuffleImages(source) {
+      var pool = source.slice();
+      for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = pool[i];
+        pool[i] = pool[j];
+        pool[j] = temp;
+      }
+      return pool;
+    }
+
+    function rebuildPool() {
+      shuffledPool = shuffleImages(images);
+
+      if (currentImage && shuffledPool.length > 1 && shuffledPool[0] === currentImage) {
+        shuffledPool.push(shuffledPool.shift());
+      }
+    }
+
+    function getNextImage() {
+      var guard = 0;
+
+      if (!shuffledPool.length) {
+        rebuildPool();
+      }
+
+      while (shuffledPool.length && recentHistory.indexOf(shuffledPool[0]) !== -1 && guard < images.length) {
+        shuffledPool.push(shuffledPool.shift());
+        guard += 1;
+      }
+
+      var nextImage = shuffledPool.shift();
+      var historyLimit = Math.min(3, Math.max(1, images.length - 1));
+
+      recentHistory.push(nextImage);
+      if (recentHistory.length > historyLimit) {
+        recentHistory.shift();
+      }
+
+      return nextImage;
+    }
+
+    function applyBackground($layer, imagePath) {
+      $layer.css('background-image', "url('" + imagePath + "')");
+      $layer.removeClass('zooming');
+      void $layer[0].offsetWidth;
+      $layer.addClass('zooming');
+    }
+
+    function updateTip() {
+      if (!tips.length) {
+        return;
+      }
+
+      currentTipIndex = (currentTipIndex + 1) % tips.length;
+      $('#loading-tip-text').text(tips[currentTipIndex]);
+    }
+
+    function transitionBackground() {
+      var $layer = $('#bg-layer');
+      var $fade = $('#bg-fade');
+      var nextImage = getNextImage();
+
+      $fade.stop(true, true).animate({ opacity: 1 }, fadeDuration, function () {
+        currentImage = nextImage;
+        applyBackground($layer, currentImage);
+        $fade.animate({ opacity: 0 }, fadeDuration);
+      });
+    }
+
+    $(document).ready(function () {
+      var $layer = $('#bg-layer');
+      var $fade = $('#bg-fade');
+
+      rebuildPool();
+      currentImage = getNextImage();
+      applyBackground($layer, currentImage);
+      updateTip();
+
+      $fade.css('opacity', 1).animate({ opacity: 0 }, fadeDuration);
+
+      window.setInterval(function () {
+        updateTip();
+        transitionBackground();
+      }, displayDuration);
+    });
+  </script>
+</head>
+<body>
+  <main class="loading-screen">
+    <section class="canvas" id="bg">
+      <div class="bg-layer" id="bg-layer" aria-hidden="true"></div>
+      <div class="bg-fade" id="bg-fade" aria-hidden="true"></div>
+
+      <header class="title-block">
+        <div class="title-line">Mr Green Zombie Survival</div>
+        <div class="title-line title-subline">Classic Edition</div>
+      </header>
+
+      <section class="panel panel-left">
+        <h2>Humans</h2>
+        <p>Survive 20 mins</p>
+        <p>Kill zombies to earn new guns</p>
+        <p>Level up your guns to boost their stats</p>
+        <p>Cading :<br>1 kill = Mini cade kit<br>40 kills = Aegis cade kit</p>
+      </section>
+
+      <section class="panel panel-right">
+        <h2>Zombies</h2>
+        <p>Kill humans to raise the infliction level</p>
+        <p>Unlock classes over time and/or infliction</p>
+        <p>Level up your classes to boost their stats</p>
+        <p>Instant respawn</p>
+      </section>
+
+      <section class="panel panel-bottom-center">
+        <h3>Mr Green Features</h3>
+        <p>Achievements ( + titles &amp; player icons to unlock)</p>
+        <p>Custom bots</p>
+        <p>Cosmetics &amp; upgrades to buy (with Greencoins)</p>
+        <p>Daily missions (award Greencoins)</p>
+      </section>
+
+      <section class="panel panel-discord">
+        <p>discord.gg/UScKy3dwpt</p>
+        <p>forums.mrgreengaming.com</p>
+      </section>
+
+      <section class="panel panel-note">
+        <p>Download will take a while the first time.<br>Be patient !</p>
+      </section>
+
+      <div class="loading-tip" aria-live="polite">
+        <span class="loading-tip-icon">⚠</span>
+        <span id="loading-tip-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</span>
+      </div>
+
+      <div class="loading-spinner" aria-hidden="true">
+        <img src="./images/mr green icon.png" alt="">
+      </div>
+    </section>
+  </main>
 </body>
 </html>
